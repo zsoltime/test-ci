@@ -1,0 +1,89 @@
+version: 2.1
+
+defaults: &defaults
+  working_directory: ~/test-ci
+  docker:
+    - image: circleci/node:12
+
+jobs:
+  install_deps:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Update npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache:
+          keys:
+            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Install dependencies
+          command: npm install
+      - save_cache:
+          key: v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+          paths:
+            - ./node_modules
+
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Run tests
+          command: npm test
+
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Create production build
+          command: npm run build
+      - persist_to_workspace:
+          root: /home/circleci/project
+          paths:
+            - build
+
+  deploy:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/circleci/project
+      - restore_cache:
+          keys:
+            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Install Netlify CLI
+          command: sudo npm install netlify-cli -g
+      - run:
+          name: Deploy site to Netlify
+          command: netlify deploy --dir=/home/circleci/project/build -p
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - install_deps
+      - test:
+          requires:
+            - install_deps
+      - build:
+          requires:
+            - test
+      - deploy:
+          context: TestCINetlify
+          requires:
+            - build
