@@ -15,12 +15,12 @@ jobs:
           command: 'sudo npm install -g npm@latest'
       - restore_cache:
           keys:
-            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
       - run:
           name: Install dependencies
           command: npm install
       - save_cache:
-          key: v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+          key: v1-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
           paths:
             - ./node_modules
 
@@ -30,7 +30,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
       - run:
           name: Run tests
           command: npm test
@@ -41,7 +41,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
       - run:
           name: Install dependencies
           command: npm install
@@ -49,7 +49,7 @@ jobs:
           name: Create production build
           command: npm run build
       - persist_to_workspace:
-          root: /home/circleci/project
+          root: /home/circleci/test-ci
           paths:
             - build
 
@@ -58,10 +58,10 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /home/circleci/project
+          at: /home/circleci/test-ci
       - restore_cache:
           keys:
-            - v{{ .Environment.versionCache }}-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
+            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum ".circleci/config.yml" }}
       - run:
           name: Install dependencies
           command: npm install
@@ -70,7 +70,7 @@ jobs:
           command: sudo npm install netlify-cli -g
       - run:
           name: Deploy site to Netlify
-          command: netlify deploy --dir=/home/circleci/project/build -p
+          command: netlify deploy --dir=/home/circleci/test-ci/build -p
 
 workflows:
   version: 2
